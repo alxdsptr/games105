@@ -19,9 +19,18 @@ def part1_cal_torque(pose, physics_info: PhysicsInfo, **kargs):
     joint_orientation = physics_info.get_joint_orientation()
     joint_avel = physics_info.get_body_angular_velocity()
 
-    global_torque = np.zeros((20,3))
-    
-    return global_torque
+    # global_torque = np.zeros((20,3))
+    orientation_diff = np.zeros((20,3))
+    orientation_diff[0] = (R.from_quat(pose[0]) * R.from_quat(joint_orientation[0]).inv()).as_euler('XYZ', degrees=True)
+    for i in range(1, 20):
+        rotation = R.from_quat(joint_orientation[i]) * R.from_quat(joint_orientation[parent_index[i]]).inv()
+        orientation_diff[i] = (R.from_quat(pose[i]) * rotation.inv()).as_euler('XYZ', degrees=True)
+
+    torque = kp * orientation_diff - kd * joint_avel
+    # global_torque[i] = torque
+
+
+    return torque
 
 def part2_cal_float_base_torque(target_position, pose, physics_info, **kargs):
     '''
