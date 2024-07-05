@@ -12,8 +12,8 @@ def part1_cal_torque(pose, physics_info: PhysicsInfo, **kargs):
     输出： global_torque: (20,3)的numpy数组，表示每个关节的全局坐标下的目标力矩，根节点力矩会被后续代码无视
     '''
     # ------一些提示代码，你可以随意修改------------#
-    kp = kargs.get('kp', 500) # 需要自行调整kp和kd！ 而且也可以是一个数组，指定每个关节的kp和kd
-    kd = kargs.get('kd', 20) 
+    kp = kargs.get('kp', 100) # 需要自行调整kp和kd！ 而且也可以是一个数组，指定每个关节的kp和kd
+    kd = kargs.get('kd', 30)
     parent_index = physics_info.parent_index
     joint_name = physics_info.joint_name
     joint_orientation = physics_info.get_joint_orientation()
@@ -27,6 +27,7 @@ def part1_cal_torque(pose, physics_info: PhysicsInfo, **kargs):
         orientation_diff[i] = (R.from_quat(pose[i]) * rotation.inv()).as_euler('XYZ', degrees=True)
 
     torque = kp * orientation_diff - kd * joint_avel
+    # torque[0] = np.zeros((3,))
     # global_torque[i] = torque
 
 
@@ -46,6 +47,7 @@ def part2_cal_float_base_torque(target_position, pose, physics_info, **kargs):
     kd = kargs.get('root_kd', 20)
     root_position, root_velocity = physics_info.get_root_pos_and_vel()
     global_root_force = np.zeros((3,))
+    global_root_force = kp * (target_position - root_position) - kd * root_velocity
     return global_root_force, global_torque
 
 def part3_cal_static_standing_torque(bvh: BVHMotion, physics_info):
@@ -66,5 +68,15 @@ def part3_cal_static_standing_torque(bvh: BVHMotion, physics_info):
     tar_pos = tar_pos * 0.8 + joint_positions[9] * 0.1 + joint_positions[10] * 0.1
 
     torque = np.zeros((20,3))
+    kp = 1000
+    kd = 20
+    root_position, root_velocity = physics_info.get_root_pos_and_vel()
+    root_force = kp * (tar_pos - root_position) - kd * root_velocity
+    torque = part1_cal_torque(pose, physics_info)
+    for i in range(1, 20):
+        diff = joint_positions[i] - root_position
+        temp = np.cross(diff, root_force)
+        torque[i] += temp
+
     return torque
 
